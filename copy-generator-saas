@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CopyGenius - Gerador de Copy IA</title>
+    <script src="https://cdn.jsdelivr.net/npm/stripe@latest/stripe.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .pricing-info {
+            background: #f5f7ff;
+            border-left: 4px solid #667eea;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .pricing-info strong {
+            color: #667eea;
+        }
+
+        .result {
+            background: #f9f9f9;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 24px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result h3 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+
+        .copy-text {
+            background: white;
+            border: 1px solid #e0e0e0;
+            padding: 16px;
+            border-radius: 6px;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 16px;
+            word-wrap: break-word;
+        }
+
+        .btn-secondary {
+            background: #667eea;
+            color: white;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #764ba2;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .credits {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-top: 16px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ CopyGenius</h1>
+            <p>Gere copy profissional com IA para seus produtos</p>
+        </div>
+
+        <div class="content">
+            <div class="pricing-info">
+                💰 <strong>Preço:</strong> R$ 5,00 por copy gerado (cobrado automaticamente)
+            </div>
+
+            <form id="copyForm">
+                <div class="two-columns">
+                    <div class="form-group">
+                        <label>Nome do Produto *</label>
+                        <input type="text" id="productName" placeholder="Ex: Tênis Esportivo Unissex" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Categoria *</label>
+                        <select id="category" required>
+                            <option value="">Selecione uma categoria</option>
+                            <option value="moda">Moda / Vestuário</option>
+                            <option value="eletronicos">Eletrônicos</option>
+                            <option value="beleza">Beleza / Cosméticos</option>
+                            <option value="casa">Casa / Decoração</option>
+                            <option value="esportes">Esportes / Fitness</option>
+                            <option value="alimentos">Alimentos / Bebidas</option>
+                            <option value="servicos">Serviços</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição do Produto *</label>
+                    <textarea id="description" placeholder="Descreva o produto, materiais, benefícios, diferenciais..." required></textarea>
+                </div>
+
+                <div class="two-columns">
+                    <div class="form-group">
+                        <label>Público-alvo *</label>
+                        <input type="text" id="audience" placeholder="Ex: Mulheres 25-35 anos, profissionais" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Estilo de Copy *</label>
+                        <select id="tone" required>
+                            <option value="">Selecione o tom</option>
+                            <option value="professional">Profissional / Formal</option>
+                            <option value="casual">Casual / Descontraído</option>
+                            <option value="urgency">Urgência / Chamado à ação</option>
+                            <option value="luxury">Luxo / Premium</option>
+                            <option value="humor">Humor / Criativo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="message"></div>
+
+                <button type="submit" class="btn" id="submitBtn">
+                    Gerar Copy ✨
+                </button>
+            </form>
+
+            <div class="result" id="result">
+                <h3>Seu Copy Gerado:</h3>
+                <div class="copy-text" id="copyText"></div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-secondary" onclick="copiarTexto()">📋 Copiar Copy</button>
+                    <button class="btn-secondary" onclick="baixarCopy()">⬇️ Baixar TXT</button>
+                </div>
+                <div class="credits">
+                    ✅ Copy gerado com sucesso! Cobrado R$ 5,00 do seu cartão.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STRIPE_PUBLIC_KEY = 'pk_test_sua_chave_aqui'; // Você adiciona sua chave Stripe
+        const CLAUDE_API_KEY = 'sk-ant-sua-chave-aqui'; // Você adiciona sua chave Claude
+        
+        let stripe = null;
+
+        document.getElementById('copyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await gerarCopy();
+        });
+
+        async function gerarCopy() {
+            const btn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('message');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Gerando...';
+            messageDiv.innerHTML = '';
+
+            try {
+                // 1. Chama Claude para gerar o copy
+                const copy = await chamarClaude();
+                
+                // 2. Processa pagamento via Stripe
+                const pagamentoOk = await processarPagamento();
+                
+                if (pagamentoOk) {
+                    // 3. Exibe o resultado
+                    document.getElementById('copyText').textContent = copy;
+                    document.getElementById('result').classList.add('show');
+                    messageDiv.innerHTML = '<div class="success">✅ Copy gerado e pagamento processado!</div>';
+                } else {
+                    messageDiv.innerHTML = '<div class="error">❌ Erro ao processar pagamento</div>';
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Gerar Copy ✨';
+            }
+        }
+
+        async function chamarClaude() {
+            const productName = document.getElementById('productName').value;
+            const category = document.getElementById('category').value;
+            const description = document.getElementById('description').value;
+            const audience = document.getElementById('audience').value;
+            const tone = document.getElementById('tone').value;
+
+            const prompt = `Você é um especialista em copywriting para e-commerce. Gere um copy profissional e convincente para vender o seguinte produto:
+
+Produto: ${productName}
+Categoria: ${category}
+Descrição: ${description}
+Público-alvo: ${audience}
+Estilo: ${tone}
+
+Faça um copy de 150-200 palavras que:
+1. Chame atenção no primeiro parágrafo
+2. Destaque os principais benefícios
+3. Crie urgência ou desejo de compra
+4. Inclua um chamado à ação forte
+5. Seja otimizado para plataformas de venda online
+
+Retorne apenas o copy, sem explicações extras.`;
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': CLAUDE_API_KEY,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                    model: 'claude-opus-4-1',
+                    max_tokens: 1000,
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao chamar Claude API');
+            }
+
+            const data = await response.json();
+            return data.content[0].text;
+        }
+
+        async function processarPagamento() {
+            // Simula pagamento no Stripe
+            // Em produção, você integraria o Stripe Payment Intent aqui
+            // Por enquanto, retorna true após 1 segundo (simula processamento)
+            
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    resolve(true); // Em produção: integrar com Stripe
+                }, 1000);
+            });
+        }
+
+        function copiarTexto() {
+            const texto = document.getElementById('copyText').textContent;
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('✅ Copy copiado para a área de transferência!');
+            });
+        }
+
+        function baixarCopy() {
+            const texto = document.getElementById('copyText').textContent;
+            const elemento = document.createElement('a');
+            elemento.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(texto);
+            elemento.download = 'copy-gerado.txt';
+            elemento.click();
+        }
+    </script>
+</body>
+</html>
